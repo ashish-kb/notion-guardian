@@ -81,7 +81,7 @@ const exportFromNotion = async (
       if (task.error) throw new Error(`Export failed with reason: ${task.error}`);
       
       await sleep(5)
-      console.log(`Exported ${task} pages.`);
+      console.log(`Exported ${task.status.pagesExported} pages.`);
 
       if (task.state === "success") {
         exportURL = task.status.exportURL;
