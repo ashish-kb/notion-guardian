@@ -71,18 +71,20 @@ const exportFromNotion = async (
       const {
         data: { results: tasks },
         headers: { "set-cookie": getTasksRequestCookies },
-      }: {
-        data: { results: NotionTask[] };
-        headers: { [key: string]: string[] };
       } = await client.post("getTasks", { taskIds: [taskId] });
+  
       const task = tasks.find((t) => t.id === taskId);
-
+  
       if (!task) throw new Error(`Task [${taskId}] not found.`);
+      if (!task.status) {
+        console.log(`Task [${taskId}] status is undefined, retrying...`);
+        retries += 1;
+        continue;
+      }
       if (task.error) throw new Error(`Export failed with reason: ${task.error}`);
-      
-      await sleep(5)
-      console.log(`Exported ${task.status.pagesExported} pages.`);
-
+  
+      console.log(`Exported ${task.status.pagesExported || 0} pages.`);
+  
       if (task.state === "success") {
         exportURL = task.status.exportURL;
         fileTokenCookie = getTasksRequestCookies.find((cookie) =>
@@ -94,7 +96,7 @@ const exportFromNotion = async (
         console.log(`Export finished.`);
         break;
       }
-
+  
       // Reset retries on success
       retries = 0;
     } catch (error) {
@@ -103,11 +105,12 @@ const exportFromNotion = async (
         retries += 1;
         continue;
       }
-
+  
       // Rethrow if it's not a 429 error
       throw error;
     }
   }
+
 
   const response = await client({
     method: "GET",
